@@ -9,6 +9,35 @@ import os
 import json
 import string
 import re
+import bpy.app.timers
+
+def ensure_eft_shader_loaded():
+    shader_name = "EFT Shader v1"
+    if shader_name in bpy.data.node_groups:
+        print(f"[EFT Addon] Node group '{shader_name}' already loaded.")
+        return
+
+    addon_dir = os.path.dirname(__file__)
+    blend_path = os.path.join(addon_dir, "EFT_Shader.blend")
+
+    if not os.path.exists(blend_path):
+        print(f"[EFT Addon] .blend not found: {blend_path}")
+        return
+
+    print(f"[EFT Addon] Attempting to load from {blend_path}")
+
+    try:
+        with bpy.data.libraries.load(blend_path, link=False) as (data_from, data_to):
+            # 🛠 Fix: Accessing node_groups must be explicit
+            if hasattr(data_from, "node_groups") and shader_name in data_from.node_groups:
+                data_to.node_groups = [shader_name]
+                print(f"[EFT Addon] Successfully loaded shader: {shader_name}")
+            else:
+                print(f"[EFT Addon] Shader '{shader_name}' not found in .blend file")
+    except Exception as e:
+        print(f"[EFT Addon] Error loading shader group: {e}")
+
+
 
 # --- CLEAR OUT OLD DYNAMIC PROPS ---
 def clear_mod_props():
@@ -982,6 +1011,14 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.eft_props = bpy.props.PointerProperty(type=EFTProperties)
+
+    # Delay shader load to avoid _RestrictData error
+    bpy.app.timers.register(ensure_eft_shader_loaded, first_interval=0.5)
+
+    # Also re-load it after opening .blend files
+    if ensure_eft_shader_loaded not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(ensure_eft_shader_loaded)
+
 
 
 def unregister():
