@@ -1,25 +1,24 @@
 # EFT Weapon Builder
 
+<table>
+<tr>
+<td valign="top">
 Blender addon for automatically importing, organizing, and texturing Escape From Tarkov weapon mods.  
 Designed to streamline mod kitbashing, bone alignment, and material setup using a custom EFT shader (shader credits to @dvalinoff on youtube).
 
 ## 📦 Features
 
-- Import weapons and mods from structured folders
-- Attach mods using dropdown to correct bones
-- Support for `weapon_compatibility.json` mapping
-- Auto texture assignment using EFT Shader or Principled BSDF
-- Bake Roughness maps directly in Blender using Python inversion
-
----
+- Import weapons and mods from structured folders  
+- Attach mods using dropdown to correct bones  
+- Support for `weapon_compatibility.json` mapping  
+- Auto texture assignment using EFT Shader or Principled BSDF  
+- Bake Roughness maps directly in Blender using Python inversion  
 
 ## 🧩 Installation
 
-1. Download the latest `.zip` from the [Releases page](https://github.com/papesgit/EFTWeaponBuilder/releases)
-2. Install it in Blender
+1. Download the latest `.zip` from the [Releases page](https://github.com/papesgit/EFTWeaponBuilder/releases)  
+2. Install it in Blender  
 3. Place `weapon_compatibility.json` in mods folder
-
----
 
 ## 🛠 Usage
 
@@ -32,6 +31,13 @@ Designed to streamline mod kitbashing, bone alignment, and material setup using 
 7. Select mod and weapon Armatures, hit refresh bone list and attach to desired bone.
 8. Use **Auto Texture (EFT Shader)** to apply materials
 9. Optionally, use **Bake Gloss → Roughness** to generate roughness maps
+
+</td>
+<td>
+<img src="https://github.com/user-attachments/assets/96c5b927-e102-4d73-9b44-cea2788fd22b" width="1000">
+</td>
+</tr>
+</table>
 
 ---
 
