@@ -821,95 +821,93 @@ class EFT_OT_auto_bake_gloss(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        import os, bpy
+        import os
 
-        # Blender stores image.pixels in the image's own colorspace (sRGB for your gloss maps),
-        # so we must linearize before inverting:
         def srgb_to_linear(c):
             if c <= 0.04045:
                 return c / 12.92
             else:
                 return ((c + 0.055) / 1.055) ** 2.4
 
-        scene     = context.scene
-        props     = scene.eft_props
-        mods_root = bpy.path.abspath(props.mods_folder)
-        out_dir   = os.path.join(mods_root, "baked_roughness")
-        os.makedirs(out_dir, exist_ok=True)
-
         for obj in context.selected_objects:
             if obj.type != 'MESH' or "_LOD0" not in obj.name:
-                print(f"[EFT Bake] skipping {obj.name!r}: not a LOD0 mesh")
                 continue
             bpy.context.view_layer.objects.active = obj
 
             for slot in obj.material_slots:
                 mat = slot.material
                 if not mat or not mat.use_nodes:
-                    print(f"[EFT Bake] skipping empty or non‑node mat on {obj.name!r}")
                     continue
                 nt = mat.node_tree
 
-                # find the Color→Invert link
+                # Find the invert node that’s fed by gloss image
                 inv_link = next((
                     l for l in nt.links
                     if isinstance(l.to_node, bpy.types.ShaderNodeInvert)
-                       and l.to_socket.name == "Color"
+                    and l.to_socket.name == "Color"
                 ), None)
+
                 if not inv_link:
-                    print(f"[EFT Bake] {mat.name!r}: no Color→Invert link → skip")
                     continue
 
-                gloss_img = inv_link.from_node.image
+                gloss_node = inv_link.from_node
+                gloss_img = gloss_node.image
                 if not gloss_img:
-                    print(f"[EFT Bake] {mat.name!r}: gloss node has no image → skip")
                     continue
 
-                # build output path & skip if already done
-                fname = f"{obj.name}_{mat.name}_rough.png"
-                dst   = os.path.join(out_dir, fname)
+                # Derive the output folder from the gloss image path
+                gloss_path = bpy.path.abspath(gloss_img.filepath_raw)
+                gloss_dir = os.path.dirname(gloss_path)
+                gloss_basename = os.path.splitext(os.path.basename(gloss_path))[0]
+
+                # Build the output path
+                baked_name = f"{gloss_basename}_rough.png"
+                dst = os.path.join(gloss_dir, baked_name)
+
                 if os.path.exists(dst):
-                    print(f"[EFT Bake] {mat.name!r}: roughness already exists → skip")
+                    print(f"[EFT Bake] {baked_name} already exists, skipping.")
                     continue
 
-                # duplicate & prepare for raw data
+                # Copy the image to start
                 rough = gloss_img.copy()
                 rough.colorspace_settings.name = 'Non-Color'
 
-                # read the original (sRGB) pixels, convert/invert/write linear
-                orig = list(gloss_img.pixels)       # [Rs, Gs, Bs, A, …] in sRGB
-                outp = []                           # we'll build new [R,G,B,A,…]
+                orig = list(gloss_img.pixels)
+                outp = []
 
                 for i in range(0, len(orig), 4):
-                    sr = orig[i]                   # sRGB red channel
-                    lr = srgb_to_linear(sr)        # convert to linear
-                    inv = 1.0 - lr                 # invert in linear
-                    # assign to all channels (Principled reads R)
+                    sr = orig[i]
+                    lr = srgb_to_linear(sr)
+                    inv = 1.0 - lr
                     outp.extend([inv, inv, inv, orig[i+3]])
 
                 rough.pixels[:] = outp
-
-                # save it
                 rough.filepath_raw = dst
-                rough.file_format   = 'PNG'
+                rough.file_format = 'PNG'
                 rough.save()
-                print(f"[EFT Bake] wrote roughness → {dst}")
 
-                # hook into Principled.Roughness
+                print(f"[EFT Bake] wrote → {dst}")
+                # Hook into Principled.Roughness
                 pbsdf = next((
                     n for n in nt.nodes
                     if isinstance(n, bpy.types.ShaderNodeBsdfPrincipled)
                 ), None)
+
                 if pbsdf:
                     tex = nt.nodes.new('ShaderNodeTexImage')
                     tex.image = rough
                     tex.image.colorspace_settings.name = 'Non-Color'
                     nt.links.new(tex.outputs['Color'], pbsdf.inputs['Roughness'])
-                else:
-                    print(f"[EFT Bake] {mat.name!r}: no Principled BSDF → done")
 
-        self.report({'INFO'}, f"Roughness maps written to:\n{out_dir}")
+                # Clean up old gloss + invert nodes
+                nt.nodes.remove(gloss_node)
+                nt.nodes.remove(inv_link.to_node)
+
+
+
+        self.report({'INFO'}, f"Baked roughness maps next to original gloss maps.")
         return {'FINISHED'}
+
 
 
 
