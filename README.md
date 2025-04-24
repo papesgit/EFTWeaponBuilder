@@ -1,10 +1,11 @@
 # EFT Weapon Builder
 
+Blender addon for automatically importing, organizing, and texturing Escape From Tarkov weapon mods.  
+Designed to streamline mod kitbashing, bone alignment, and material setup using a custom EFT shader (shader credits to @dvalinoff on youtube).
+
 <table>
 <tr>
 <td valign="top">
-Blender addon for automatically importing, organizing, and texturing Escape From Tarkov weapon mods.  
-Designed to streamline mod kitbashing, bone alignment, and material setup using a custom EFT shader (shader credits to @dvalinoff on youtube).
 
 ## 📦 Features
 
